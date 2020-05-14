@@ -171,39 +171,39 @@ static void on_iomem(u64 addr, u64 size)
 
 }
 
-struct reverse_addr {
+struct reserve_addr {
     u64 addr;
     u64 size;
 };
 
 #define MAX_REVERSE 10
-struct reverse_addr revmem[MAX_REVERSE + 1];
-int reversed_nr = 0;
-ulong max_reverse_addr = 0;
-void add_reverse(u64 addr, u64 size)
+struct reserve_addr revmem[MAX_REVERSE + 1];
+int reserved_nr = 0;
+ulong max_reserve_addr = 0;
+void add_reserve(u64 addr, u64 size)
 {
-    if (reversed_nr >= MAX_REVERSE)
+    if (reserved_nr >= MAX_REVERSE)
         panic("MAX_REVERSE too small");
-    revmem[reversed_nr].addr = addr;
-    revmem[reversed_nr++].size = size;
-    if (addr + size > max_reverse_addr)
-        max_reverse_addr = addr + size;
+    revmem[reserved_nr].addr = addr;
+    revmem[reserved_nr++].size = size;
+    if (addr + size > max_reserve_addr)
+        max_reserve_addr = addr + size;
 }
 
 static void on_mem(u64, u64);
 static void on_iomem(u64, u64);
-static void deal_reverse(u64 addr, u64 size, bool ismem)
+static void deal_reserve(u64 addr, u64 size, bool ismem)
 {
     extern struct arch_cpu the_cpu;
     the_cpu.rsp=read_rsp();
-    if (addr > max_reverse_addr) {
+    if (addr > max_reserve_addr) {
         if (ismem)
             on_mem(addr, size);
         else
             on_iomem(addr, size);
         return;
     }
-    for (int i = 0; i < reversed_nr; i++) {
+    for (int i = 0; i < reserved_nr; i++) {
         ulong rev_start = revmem[i].addr;
         ulong rev_size = revmem[i].size;
 
@@ -211,7 +211,7 @@ static void deal_reverse(u64 addr, u64 size, bool ismem)
             continue;
         if (addr + size <= rev_start)
             continue;
-        //total in reverse,just return.
+        //total in reserve,just return.
         if (addr >= rev_start && addr + size <= rev_start + rev_size)
             return;
         else if (addr >= rev_start) {
@@ -219,20 +219,20 @@ static void deal_reverse(u64 addr, u64 size, bool ismem)
 
             newaddr = rev_start + rev_size;
             newsize = size + addr - (rev_start + rev_size);
-            //chunk in reverse
-            deal_reverse(newaddr, newsize, ismem);
+            //chunk in reserve
+            deal_reserve(newaddr, newsize, ismem);
             return;
         }
         else {
             ASSERT(addr <= rev_start);
-            //reverse total in mem zone
+            //reserve total in mem zone
             ulong newaddr, newsize;
 
             newsize = rev_start - addr;
-            deal_reverse(addr, newsize, ismem);
+            deal_reserve(addr, newsize, ismem);
             newaddr = rev_start + size;
             newsize = size + addr - rev_start;
-            deal_reverse(newaddr, newsize, ismem);
+            deal_reserve(newaddr, newsize, ismem);
             return;
         }
 
@@ -318,10 +318,10 @@ void init_e820()
     ulong addr, msize;
     ulong phmemsize = 0;
     ulong maxmemaddr = 0;
-    const ulong reverse_low_size = 0x10000;	//64k
+    const ulong reserve_low_size = 0x10000;	//64k
 
-    add_reverse(0, reverse_low_size);
-    add_reverse(__kernel_start, __kernel_end - __kernel_start);
+    add_reserve(0, reserve_low_size);
+    add_reserve(__kernel_start, __kernel_end - __kernel_start);
     add_map(IOAPIC_BASE/PAGE_SIZE+1);//map ioapic
 
     for (mmap = (memory_map_t *) pe820;
@@ -349,9 +349,9 @@ void init_e820()
                " length = %lx, type = 0x%x\n",
                (unsigned)mmap->size, addr, msize, (unsigned)mmap->type);
         if (mmap->type == 1)
-            deal_reverse(addr, msize, true);
+            deal_reserve(addr, msize, true);
         else
-            deal_reverse(addr, msize, false);
+            deal_reserve(addr, msize, false);
 
     }
 }
@@ -361,10 +361,10 @@ void init_page_map(void)
     memory_map_t *mmap;
     ulong addr, msize;
     ulong lastend = 0;
-    const ulong reverse_low_size = 0x10000;	//64k
+    const ulong reserve_low_size = 0x10000;	//64k
 
-    add_reverse(0, reverse_low_size);
-    add_reverse(__kernel_start, __kernel_end - __kernel_start);
+    add_reserve(0, reserve_low_size);
+    add_reserve(__kernel_start, __kernel_end - __kernel_start);
 
     for (mmap = (memory_map_t *) pe820;
          (unsigned long)mmap < (ulong) pe820 + e820map_size;
@@ -383,10 +383,10 @@ void init_page_map(void)
             printk("hole:%lx length:%lx\n", lastend, addr - lastend);
 
             if (hsize < PAGE_SIZE)
-                deal_reverse(lastend, addr - lastend, false);
+                deal_reserve(lastend, addr - lastend, false);
             else {
                 if (lastend & (PAGE_SIZE - 1)) {
-                    deal_reverse(lastend,
+                    deal_reserve(lastend,
                                  PAGE_SIZE - (lastend & (PAGE_SIZE - 1)),
                                  false);
                     lastend += PAGE_SIZE;
