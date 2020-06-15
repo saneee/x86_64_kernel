@@ -1,0 +1,1 @@
+-bad -bap -npro -kr  -ts40 -sob -l80 -ss -ncs -cp1 -i4  -nce
