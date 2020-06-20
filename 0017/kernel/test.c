@@ -15,10 +15,11 @@ static int test_init(bool isbp)
     void ide_write(u32 sector, void *data, u8 cnt, bool head);
     memset(buf,0,512);
     ide_read(0,buf,1,true);
-    nsleep(40000);
+    nsleep(400000);
     dump_mem(buf,512);    
     memset(buf,'H',512);
     ide_write(1,buf,1,true);
+    nsleep(400000);
     memset(buf,0,512);
     ide_read(1,buf,1,true);
     dump_mem(buf,512);
