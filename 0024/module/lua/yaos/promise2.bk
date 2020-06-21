@@ -1,0 +1,229 @@
+#include <types.h>
+#include <yaos/sched.h>
+
+#include <yaos/module.h>
+#include <yaos/sysparam.h>
+#include <yaos/yaoscall.h>
+#include <yaos/percpu.h>
+#include <yaos/init.h>
+
+#include <yaos/errno.h>
+#include <yaos/printk.h>
+#include <yaos/lua_module.h>
+#include <yaos/time.h>
+#include <yaoscall/malloc.h>
+int yaos_lua_ret_promise(lua_State *L);
+static int yaos_lua_promise_reject(lua_State *L);
+enum {
+    PENDING = 0,
+    RESOLVED,
+    REJECTED
+};
+static inline bool has_function(lua_State *L,const char *funcname,int pos)
+{
+    bool hasfunc = false;
+    lua_getfield(L, pos, funcname);
+    if (lua_type(L,-1) == LUA_TFUNCTION) {
+          hasfunc = true;
+    }
+    lua_pop(L,1);
+    return hasfunc;
+}
+static inline bool is_promise(lua_State *L,int pos)
+{
+    return (lua_type(L,pos)==LUA_TTABLE) && has_function(L,"next",pos);
+}
+//self.chain.data = resolve()
+//resolve(self,chain)
+//-2 self
+//-1 chain
+static int yaos_lua_promise_resolve(lua_State *L)
+{
+    printk("yaos_lua_promise_resolve:%d\n",lua_type(L,-2));
+
+    lua_getglobal(L,"show_dump");
+    printk("showdump self:%d,%d\n",lua_type(L,-1),lua_type(L,-2));
+    lua_pushvalue(L,-3);
+    lua_call(L,1,0);
+
+    lua_getfield(L,-2,"resolve");
+    if (lua_type(L,-1) == LUA_TFUNCTION) {
+        lua_getfield(L,-3,"data");
+        if (is_promise(L,-1)) {
+            //do data.owner = self
+            // -1:self.data,-2:self.resolve,-3:self.chain,-4:self
+            lua_pushvalue(L,-4);
+            lua_setfield(L, -2, "owner");
+            //check state
+            lua_getfield(L, -1, "state");
+            int state =  (int)lua_tonumber(L,-1);
+            lua_pop(L,1);
+            lua_pushvalue(L,-3);//-1 chain, -2 data 
+            if (state == RESOLVED) {
+                lua_getfield(
+                yaos_lua_promise_resolve(L);
+            } else if (state == REJECTED) {
+                yaos_lua_promise_reject(L);
+            }
+            lua_pop(L,4);//-1 chain, -2 data -3 resolve -4,self.chain -5 self
+            //set self.chain = nil
+            lua_pushnil(L);
+            lua_setfield(L,-2,"chain"); 
+            lua_pushvalue(L,-1); //-1 self, -2 self,keep balance of stack
+            return 0;
+
+        }
+        lua_call(L,1,1);
+        lua_setfield(L,-2,"data");//chain.data = ret
+    } else {
+        lua_pop(L,1);//pop resolve
+        printk("resolve not function:%d\n",lua_type(L,-2));
+
+        lua_getfield(L,-2,"data");
+
+        lua_setfield(L,-2,"data");//chain.data = self.data
+       
+    }
+    lua_pushnumber(L,RESOLVED);//self.state = RESOLVED;
+    lua_setfield(L,-3,"state");
+
+    return 0;
+    
+}
+//-2 self
+//-1 chain
+static int yaos_lua_promise_reject(lua_State *L)
+{
+   lua_getfield(L,-2,"reject");
+   if (lua_type(L,-1) == LUA_TFUNCTION) {
+       lua_getfield(L,-3,"data");
+       lua_call(L,1,1);
+       lua_setfield(L,-2,"data");//chain.data = ret
+
+   } else {
+       lua_pop(L,1);//pop reject
+       lua_getfield(L,-2,"data");
+       lua_setfield(L,-2,"data");//chain.data = self.data
+
+   }
+   lua_pushnumber(L,REJECTED);//self.state = REJECTED
+   lua_setfield(L,-3,"state");
+
+   return 0;
+    
+}
+
+// next(self,resolve,reject);
+static int yaos_lua_next(lua_State *L)
+{
+    printk("yaos_lua_next:%d,%d:%d:%d\n",lua_gettop(L),lua_type(L,-1),lua_type(L,-2),lua_type(L,-3));
+    int argc = lua_gettop(L);
+    if (argc == 3) {
+
+        lua_setfield(L,-3,"reject");
+        lua_setfield(L,-2,"resolve");
+    } else if (argc ==2 ) {
+        lua_setfield(L,-2,"resolve");
+    } else  return luaL_error(L, "expecting two or three argument(self,resolve,reject)");
+    lua_getfield(L, -1, "state");
+    int state =  (int)lua_tonumber(L,-1);
+    lua_pop(L,1);
+    yaos_lua_ret_promise(L);
+    int chain = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, chain);
+    lua_setfield(L,-2,"chain");
+    lua_rawgeti(L, LUA_REGISTRYINDEX, chain);
+
+    if (state == RESOLVED) {
+        yaos_lua_promise_resolve(L); 
+    } else if (state == REJECTED) {
+        yaos_lua_promise_reject(L);
+    } 
+    lua_pushnumber(L,RESOLVED);
+    lua_setfield(L, -3, "state"); //self.state = resolved
+    luaL_unref(L, LUA_REGISTRYINDEX, chain);
+    return 1;
+}
+int yaos_lua_promise_fire(lua_State *L)
+{
+    printk("yaos_lua_promise_fire:%d\n",lua_type(L,-1));
+
+    lua_getfield(L,-1,"chain");
+    while (lua_type(L,-1) == LUA_TTABLE) {
+        yaos_lua_promise_resolve(L); 
+        lua_getfield(L,-1,"chain");
+    
+    }
+    lua_pop(L,1);
+    return 0;
+    
+    
+    lua_getfield(L, -1, "resolve");
+    if (lua_isfunction(L, -1)) {
+        lua_getfield(L, -2, "data");
+        lua_call(L,1,1);
+        int rett = lua_type(L,-1);
+        bool ispromise = false;
+        if (rett == LUA_TTABLE) {
+            lua_getfield(L, -2, "next");
+            if (lua_type(L,-1) == LUA_TFUNCTION) {
+                //resolve return new promise
+               ispromise = true;
+            }
+            lua_pop(L,1);
+        }
+        printk("3:%d,4:%d,2:%d\n",lua_type(L,-3),lua_type(L,-4),lua_type(L,-2));
+        if (!ispromise) {
+            lua_setfield(L,-3,"data");
+            lua_pop(L,2);
+        }
+    } else lua_pop(L,1);
+    //now self is in top stack
+    lua_getfield(L,-1,"chain");
+    if (lua_type(L,-1) == LUA_TTABLE) {
+         lua_getfield(L,-2,"data");
+         lua_setfield(L,-2,"data");
+         return yaos_lua_promise_fire(L);     
+     }
+
+    return 0;
+}
+int yaos_lua_ret_promise(lua_State *L)
+{
+    lua_createtable(L, 0 /* narr */, 5 /* nrec */);
+    lua_pushnumber(L,PENDING);
+    lua_setfield(L, -2, "state");
+    lua_pushcfunction(L, yaos_lua_next);
+    lua_setfield(L, -2, "next");
+    printk("yaos_lua_ret_next:%d\n",lua_type(L,-1));
+    return  1;
+    
+}
+//yaos.promise(function(resolve,reject))
+//yaos.promise({resolve=function(r) end, reject=function (r) end)
+static int yaos_lua_new_promise(lua_State *L)
+{
+    yaos_lua_ret_promise(L);
+    int argc = lua_gettop(L);
+    if (argc<1) return 1;
+    if (lua_type(L,1)==LUA_TFUNCTION) {
+        lua_pushvalue(L,1);
+        lua_setfield(L, -2, "onnext"); 
+    } else if (lua_type(L, 1)==LUA_TTABLE) {
+        lua_pushvalue(L,1);
+        lua_pushnil(L);
+        while (lua_next(L,-2)) {
+           //-1 value, -2:key, -3:table, -4 self
+           lua_setfield(L,-4, lua_tostring(L, -2));//self.key = table.key 
+        }
+        lua_pop(L,1);
+    }
+    return 1;
+ 
+}
+int yaos_lua_inject_promise(lua_State *L)
+{
+    lua_pushcfunction(L, yaos_lua_new_promise);
+    lua_setfield(L, -2, "promise");
+    return 0;    
+}
