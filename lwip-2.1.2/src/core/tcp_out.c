@@ -1258,7 +1258,6 @@ tcp_output(struct tcp_pcb *pcb)
   if (tcp_input_pcb == pcb) {
     return ERR_OK;
   }
-printk("vvvvvvvvvvvvvvpcb->state:%d\n", pcb->state);
   wnd = LWIP_MIN(pcb->snd_wnd, pcb->cwnd);
 
   seg = pcb->unsent;

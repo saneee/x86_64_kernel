@@ -27,6 +27,7 @@ OPT ?= -O2
 
 LIBS_SOURCES = $(shell find src -name "*.c")
 LIBS_OBJECTS = $(patsubst %.c, %.o, $(LIBS_SOURCES))
+LIBS_DOBJECTS = $(patsubst %.c, %.d, $(LIBS_SOURCES))
 
 # Cross-compiling (e.g., on Mac OS X)
 CROSS_COMPILE ?=
@@ -62,5 +63,6 @@ $(OUT)/liblwip.a: $(LIBS_OBJECTS)
 
 clean: 
 	rm -rf $(LIBS_OBJECTS)
+	rm -rf $(LIBS_DOBJECTS)
 
 

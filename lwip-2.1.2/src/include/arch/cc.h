@@ -35,6 +35,9 @@ static inline u32_t sys_rand(void)
 {
     return (u32_t)(hpet_uptime());
 }
+#define mem_clib_malloc yaos_malloc
+#define mem_clib_free yaos_mfree
+
 #define LWIP_RAND  sys_rand
 
 #ifndef PRIx8

@@ -117,7 +117,6 @@ static void tcp_remove_sacks_gt(struct tcp_pcb *pcb, u32_t seq);
 void
 tcp_input(struct pbuf *p, struct netif *inp)
 {
-  printk("tcp_input.......\n");
   struct tcp_pcb *pcb, *prev;
   struct tcp_pcb_listen *lpcb;
 #if SO_REUSE
@@ -243,7 +242,6 @@ tcp_input(struct pbuf *p, struct netif *inp)
       goto dropped;
     }
   }
-printk("ooooooooooooooooo\n");
   /* Demultiplex an incoming segment. First, we check if it is destined
      for an active connection. */
   prev = NULL;
@@ -280,7 +278,6 @@ printk("ooooooooooooooooo\n");
     }
     prev = pcb;
   }
-printk("KKKKKKKKKKKKKKKKKKKKKK,pcb:%016lx\n",pcb);
   if (pcb == NULL) {
     /* If it did not go to an active connection, we check the connections
        in the TIME-WAIT state. */
@@ -316,12 +313,10 @@ printk("KKKKKKKKKKKKKKKKKKKKKK,pcb:%016lx\n",pcb);
     /* Finally, if we still did not get a match, we check all PCBs that
        are LISTENing for incoming connections. */
     prev = NULL;
-printk("pppppppppppppppppppptcp_listen_pcbs.listen_pcbs\n");
     for (lpcb = tcp_listen_pcbs.listen_pcbs; lpcb != NULL; lpcb = lpcb->next) {
       /* check if PCB is bound to specific netif */
       if ((lpcb->netif_idx != NETIF_NO_INDEX) &&
           (lpcb->netif_idx != netif_get_index(ip_data.current_input_netif))) {
-printk("idx:%d\n",lpcb->netif_idx);
         prev = (struct tcp_pcb *)lpcb;
         continue;
       }
@@ -437,10 +432,8 @@ printk("idx:%d\n",lpcb->netif_idx);
         goto aborted;
       }
     }
-printk("kddddddddddd,pcb->state:%d\n",pcb->state);
     tcp_input_pcb = pcb;
     err = tcp_process(pcb);
-printk("tccccccccccccc_tcp_process:%d\n",err);
     /* A return value of ERR_ABRT means that tcp_abort() was called
        and that the pcb has been freed. If so, we don't do anything. */
     if (err != ERR_ABRT) {
@@ -556,7 +549,6 @@ printk("tccccccccccccc_tcp_process:%d\n",err);
         }
         /* Try to send something out. */
         tcp_output(pcb);
-printk("uuuuuuuuuuuuuuuuutcp_output\n");
 #if TCP_INPUT_DEBUG
 #if TCP_DEBUG
         tcp_debug_print_state(pcb->state);
@@ -926,7 +918,6 @@ tcp_process(struct tcp_pcb *pcb)
       }
       break;
     case SYN_RCVD:
-printk("flags:%x,%x\n",flags,TCP_ACK);
       if (flags & TCP_ACK) {
         /* expected ACK number? */
         if (TCP_SEQ_BETWEEN(ackno, pcb->lastack + 1, pcb->snd_nxt)) {

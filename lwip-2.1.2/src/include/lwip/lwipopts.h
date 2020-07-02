@@ -3,15 +3,20 @@
 #define LWIP_MPU_COMPATIBLE 0
 #define LWIP_SOCKET 0
 #define LWIP_NETCONN 0
+#if 0
 #define TCP_DEBUG LWIP_DBG_ON
 #define ETHARP_DEBUG     LWIP_DBG_ON
 #define NETIF_DEBUG      LWIP_DBG_ON
 #define LWIP_DBG_TYPES_ON   LWIP_DBG_ON
 #define LWIP_DBG_MIN_LEVEL  0
 #define IP_DEBUG         LWIP_DBG_ON
-#define LWIP_DEBUG 1
+#define LWIP_DEBUG LWIP_DBG_OFF
 #define TCP_INPUT_DEBUG  LWIP_DBG_ON
 #define TCP_OUTPUT_DEBUG LWIP_DBG_ON
+#define HTTPD_DEBUG LWIP_DBG_ON
+
+#endif
+
 #define LWIP_IPV6                       1
 #define IPV6_FRAG_COPYHEADER            1
 #define LWIP_IPV6_DUP_DETECT_ATTEMPTS   0
