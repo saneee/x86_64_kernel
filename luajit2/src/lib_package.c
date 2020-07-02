@@ -31,6 +31,9 @@
 /* Symbol name prefixes. */
 #define SYMPREFIX_CF		"luaopen_%s"
 #define SYMPREFIX_BC		"luaJIT_BC_%s"
+//***********disable dl ************
+#undef LJ_TARGET_DLOPEN
+#define LJ_TARGET_DLOPEN 0
 
 #if LJ_TARGET_DLOPEN
 
@@ -40,7 +43,6 @@ static void ll_unloadlib(void *lib)
 {
   dlclose(lib);
 }
-
 static void *ll_load(lua_State *L, const char *path, int gl)
 {
   void *lib = dlopen(path, RTLD_NOW | (gl ? RTLD_GLOBAL : RTLD_LOCAL));
@@ -64,7 +66,6 @@ static const char *ll_bcsym(void *lib, const char *sym)
 #endif
   return (const char *)dlsym(lib, sym);
 }
-
 #elif LJ_TARGET_WINDOWS
 
 #define WIN32_LEAN_AND_MEAN
@@ -238,6 +239,7 @@ static const char *mksymname(lua_State *L, const char *modname,
 static int ll_loadfunc(lua_State *L, const char *path, const char *name, int r)
 {
   void **reg = ll_register(L, path);
+#if 0
   if (*reg == NULL) *reg = ll_load(L, path, (*name == '*'));
   if (*reg == NULL) {
     return PACKAGE_ERR_LIB;  /* Unable to load library. */
@@ -262,6 +264,8 @@ static int ll_loadfunc(lua_State *L, const char *path, const char *name, int r)
     }
     return PACKAGE_ERR_FUNC;  /* Unable to find function. */
   }
+#endif
+  return PACKAGE_ERR_FUNC;
 }
 
 static int lj_cf_package_loadlib(lua_State *L)
@@ -344,7 +348,7 @@ static int lj_cf_package_searchpath(lua_State *L)
     return 2;  /* return nil + error message */
   }
 }
-
+#if 0
 static const char *findfile(lua_State *L, const char *name,
 			    const char *pname)
 {
@@ -401,7 +405,7 @@ static int lj_cf_package_loader_croot(lua_State *L)
   }
   return 1;
 }
-
+#endif
 static int lj_cf_package_loader_preload(lua_State *L)
 {
   const char *name = luaL_checkstring(L, 1);
@@ -579,9 +583,9 @@ static const luaL_Reg package_global[] = {
 static const lua_CFunction package_loaders[] =
 {
   lj_cf_package_loader_preload,
-  lj_cf_package_loader_lua,
-  lj_cf_package_loader_c,
-  lj_cf_package_loader_croot,
+  //lj_cf_package_loader_lua,
+  //lj_cf_package_loader_c,
+  //lj_cf_package_loader_croot,
   NULL
 };
 
