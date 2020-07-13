@@ -59,7 +59,7 @@
 #include "lwip/sys.h"
 #include "lwip/stats.h"
 #include "lwip/err.h"
-
+#include <api/stdio.h>
 #include <string.h>
 
 #if MEM_LIBC_MALLOC
@@ -106,7 +106,7 @@ mem_overflow_check_raw(void *p, size_t size, const char *descr1, const char *des
     if (m[k] != 0xcd) {
       char errstr[128];
       snprintf(errstr, sizeof(errstr), "detected mem overflow in %s%s", descr1, descr2);
-      LWIP_ASSERT(errstr, 0);
+      //LWIP_ASSERT(errstr, 0);
     }
   }
 #endif /* MEM_SANITY_REGION_AFTER_ALIGNED > 0 */
@@ -117,7 +117,7 @@ mem_overflow_check_raw(void *p, size_t size, const char *descr1, const char *des
     if (m[k] != 0xcd) {
       char errstr[128];
       snprintf(errstr, sizeof(errstr), "detected mem underflow in %s%s", descr1, descr2);
-      LWIP_ASSERT(errstr, 0);
+      //LWIP_ASSERT(errstr, 0);
     }
   }
 #endif /* MEM_SANITY_REGION_BEFORE_ALIGNED > 0 */

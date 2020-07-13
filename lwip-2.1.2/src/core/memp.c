@@ -44,7 +44,7 @@
  */
 
 #include "lwip/opt.h"
-
+#include <api/stdio.h>
 #include "lwip/memp.h"
 #include "lwip/sys.h"
 #include "lwip/stats.h"

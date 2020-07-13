@@ -1219,6 +1219,7 @@ LUA_API int lua_yield(lua_State *L, int nresults)
 
 LUA_API int lua_resume(lua_State *L, int nargs)
 {
+//printk("cframe:%lx,status:%d,%d\n",L->cframe,L->status,LUA_YIELD);
   if (L->cframe == NULL && L->status <= LUA_YIELD)
     return lj_vm_resume(L,
       L->status == LUA_OK ? api_call_base(L, nargs) : L->top - nargs,

@@ -134,8 +134,7 @@ static err_t etharp_request_dst(struct netif *netif, const ip4_addr_t *ipaddr, c
 static err_t etharp_raw(struct netif *netif,
                         const struct eth_addr *ethsrc_addr, const struct eth_addr *ethdst_addr,
                         const struct eth_addr *hwsrc_addr, const ip4_addr_t *ipsrc_addr,
-                        const struct eth_addr *hwdst_addr, const ip4_addr_t *ipdst_addr,
-                        const u16_t opcode);
+                        const struct eth_addr *hwdst_addr, const ip4_addr_t *ipdst_addr,                        const u16_t opcode);
 
 #if ARP_QUEUEING
 /**
@@ -461,8 +460,12 @@ etharp_update_arp_entry(struct netif *netif, const ip4_addr_t *ipaddr, struct et
   mib2_add_arp_entry(netif, &arp_table[i].ipaddr);
 
   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_update_arp_entry: updating stable entry %"S16_F"\n", i));
+  LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_update_arp_entry: updating stable entry %"S16_F"\noldethaddr:%02x:%02x:%02x:%02x:%02x:%02x\n", i,arp_table[i].ethaddr.addr[0],arp_table[i].ethaddr.addr[1],arp_table[i].ethaddr.addr[2],arp_table[i].ethaddr.addr[3],arp_table[i].ethaddr.addr[4],arp_table[i].ethaddr.addr[5]));
+
   /* update address */
   SMEMCPY(&arp_table[i].ethaddr, ethaddr, ETH_HWADDR_LEN);
+  LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("newethaddr:%02x:%02x:%02x:%02x:%02x:%02x\n", arp_table[i].ethaddr.addr[0],arp_table[i].ethaddr.addr[1],arp_table[i].ethaddr.addr[2],arp_table[i].ethaddr.addr[3],arp_table[i].ethaddr.addr[4],arp_table[i].ethaddr.addr[5]));
+
   /* reset time stamp */
   arp_table[i].ctime = 0;
   /* this is where we will send out queued packets! */
@@ -691,8 +694,10 @@ etharp_input(struct pbuf *p, struct netif *netif)
          can result in directly sending the queued packets for this host.
      ARP message not directed to us?
       ->  update the source IP address in the cache, if present */
+  //etharp_update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
+  //                        for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
   etharp_update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
-                          for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
+                          for_us ? ETHARP_FLAG_TRY_HARD |  ETHARP_FLAG_STATIC_ENTRY: ETHARP_FLAG_FIND_ONLY);
 
   /* now act on the message itself */
   switch (hdr->opcode) {

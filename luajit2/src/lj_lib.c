@@ -201,6 +201,22 @@ GCstr *lj_lib_checkstr(lua_State *L, int narg)
       return s;
     }
   }
+  int argidx = narg+2;
+  printk("n:%d, itype:%ld,%d,top:%d\n",argidx, itype(o),~itype(o),lua_gettop(L));
+  while(argidx>=1){
+      argidx--;
+      o = L->base + argidx-1;
+      if(tvisstr(o)) {
+          printk("str:%s\n",strdata(strV(o)));
+      }
+      if(tvisfunc(o)) {
+          GCfunc *f = funcV(o);
+          printk("function:%d,%lx\n",f->c.ffid,f->c.f);
+      }
+      printk("n:%d, itype:%ld,%d\n",argidx, itype(o),~itype(o));
+  }
+  
+  //printk("itype:%lx,%d\n",itype(o), LJ_TTRACE);
   lj_err_argt(L, narg, LUA_TSTRING);
   return NULL;  /* unreachable */
 }

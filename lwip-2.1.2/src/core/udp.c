@@ -891,6 +891,9 @@ udp_sendto_if_src_chksum(struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *d
   /* output to IP */
   NETIF_SET_HINTS(netif, &(pcb->netif_hints));
   err = ip_output_if_src(q, src_ip, dst_ip, ttl, pcb->tos, ip_proto, netif);
+
+  if(err)printk("ip_output_if_src:%d\n",err);
+
   NETIF_RESET_HINTS(netif);
 
   /* @todo: must this be increased even if error occurred? */

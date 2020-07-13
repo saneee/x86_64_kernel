@@ -12,7 +12,6 @@
 #include "lua.h"
 #include "lj_def.h"
 #include "lj_arch.h"
-
 /* -- Memory references (32 bit address space) ---------------------------- */
 
 /* Memory and GC object sizes. */
@@ -861,7 +860,10 @@ static LJ_AINLINE void setlightudV(TValue *o, void *p)
 #define contptr(f)		((void *)(f))
 #define setcont(o, f)		setlightudV((o), contptr(f))
 #endif
-
+#include "lj_gc.h"
+#ifndef isdead
+#error nodead
+#endif
 #define tvchecklive(L, o) \
   UNUSED(L), lua_assert(!tvisgcv(o) || \
   ((~itype(o) == gcval(o)->gch.gct) && !isdead(G(L), gcval(o))))

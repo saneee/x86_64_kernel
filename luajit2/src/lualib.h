@@ -38,7 +38,11 @@ LUALIB_API int luaopen_ffi(lua_State *L);
 LUALIB_API void luaL_openlibs(lua_State *L);
 
 #ifndef lua_assert
-#define lua_assert(x)	((void)0)
+//#define lua_assert(x)	((void)0)
+void __assert_fail (const char *, const char *, unsigned int, const char *) __attribute__((noreturn));
+
+#define lua_assert(x) ((void)((x) || (__assert_fail(#x, __FILE__, __LINE__, __func__),0)))
+
 #endif
 
 #endif

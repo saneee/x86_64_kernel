@@ -604,6 +604,16 @@ static ptrdiff_t finderrfunc(lua_State *L)
 LJ_NOINLINE void lj_err_run(lua_State *L)
 {
   ptrdiff_t ef = finderrfunc(L);
+int len;
+printk("lj_err_run:%p,L:%lx,%d\n",ef,L,lua_type(L,-1));
+if (lua_type(L,-1)==LUA_TSTRING) {
+    char *p = lua_tolstring(L, -1, &len);
+    printk("p:%lx,len:%d\n",p,len);
+    printk("msg:%s\n",p);
+}
+void show_call_stack(int lvl);
+show_call_stack(8);
+
   if (ef) {
     TValue *errfunc = restorestack(L, ef);
     TValue *top = L->top;
@@ -613,6 +623,7 @@ LJ_NOINLINE void lj_err_run(lua_State *L)
       lj_err_throw(L, LUA_ERRERR);
     }
     L->status = LUA_ERRERR;
+printk("L->status = LUA_ERROR:%lx\n",L);
     copyTV(L, top+LJ_FR2, top-1);
     copyTV(L, top-1, errfunc);
     if (LJ_FR2) setnilV(top++);
@@ -748,6 +759,7 @@ LJ_NOINLINE void lj_err_caller(lua_State *L, ErrMsg em)
 LJ_NORET LJ_NOINLINE static void err_argmsg(lua_State *L, int narg,
 					    const char *msg)
 {
+printk("err_argmsg:%s,L:%lx\n",msg, L);
   const char *fname = "?";
   const char *ftype = lj_debug_funcname(L, L->base - 1, &fname);
   if (narg < 0 && narg > LUA_REGISTRYINDEX)
@@ -756,6 +768,7 @@ LJ_NORET LJ_NOINLINE static void err_argmsg(lua_State *L, int narg,
     msg = lj_strfmt_pushf(L, err2msg(LJ_ERR_BADSELF), fname, msg);
   else
     msg = lj_strfmt_pushf(L, err2msg(LJ_ERR_BADARG), narg, fname, msg);
+printk("msg:%s\n",msg);
   lj_err_callermsg(L, msg);
 }
 
@@ -817,6 +830,7 @@ LUA_API lua_CFunction lua_atpanic(lua_State *L, lua_CFunction panicf)
 /* Forwarders for the public API (C calling convention and no LJ_NORET). */
 LUA_API int lua_error(lua_State *L)
 {
+
   lj_err_run(L);
   return 0;  /* unreachable */
 }
@@ -847,6 +861,7 @@ LUALIB_API int luaL_error(lua_State *L, const char *fmt, ...)
   va_start(argp, fmt);
   msg = lj_strfmt_pushvf(L, fmt, argp);
   va_end(argp);
+  printk("luaL_error:%s\n", msg);
   lj_err_callermsg(L, msg);
   return 0;  /* unreachable */
 }

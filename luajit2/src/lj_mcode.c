@@ -228,22 +228,28 @@ static void *mcode_alloc(jit_State *J, size_t sz)
 #endif
   const uintptr_t range = (1u << (LJ_TARGET_JUMPRANGE-1)) - (1u << 21);
   /* First try a contiguous area below the last one. */
-  uintptr_t hint = J->mcarea ? (uintptr_t)J->mcarea - sz : 0;
+  //uintptr_t hint = J->mcarea ? (uintptr_t)J->mcarea - sz : 0;
+  uintptr_t hint = J->mcarea ? (uintptr_t)J->mcarea - sz + 0x10000: 0;
   int i;
   /* Limit probing iterations, depending on the available pool size. */
   for (i = 0; i < LJ_TARGET_JUMPRANGE; i++) {
     if (mcode_validptr(hint)) {
       void *p = mcode_alloc_at(J, hint, sz, MCPROT_GEN);
-
+//printk("p:%016lx,range:%lx,%x,%x,target%lx,sz:%lx\n",p,range,(uintptr_t)p + sz - target,  target - (uintptr_t)p, target,sz);
       if (mcode_validptr(p) &&
-	  ((uintptr_t)p + sz - target < range || target - (uintptr_t)p < range))
+	  ((uintptr_t)p + sz - target <= range || target - (uintptr_t)p <= range))
 	return p;
       if (p) mcode_free(J, p, sz);  /* Free badly placed area. */
     }
     /* Next try probing 64K-aligned pseudo-random addresses. */
+
     do {
       hint = LJ_PRNG_BITS(J, LJ_TARGET_JUMPRANGE-16) << 16;
+//printk("do hint:%lx,%lx,%lx\n",hint,hint + sz, range+range);
+
     } while (!(hint + sz < range+range));
+    //printk("hint:%lx,%lx\n",hint,target + hint - range);
+    hint = hint ? hint: 0x10000;
     hint = target + hint - range;
   }
   lj_trace_err(J, LJ_TRERR_MCODEAL);  /* Give up. OS probably ignores hints? */

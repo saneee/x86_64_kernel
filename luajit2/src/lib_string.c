@@ -451,6 +451,8 @@ static int str_find_aux(lua_State *L, int find)
 {
   GCstr *s = lj_lib_checkstr(L, 1);
   GCstr *p = lj_lib_checkstr(L, 2);
+  //printk("str_find_aux:s:%s,p:%s,find:%d\n",strdata(s),strdata(p),find);
+  //printk("str_find:%s,top:%d\n",strdata(s),lua_gettop(L));
   int32_t start = lj_lib_optint(L, 3, 1);
   MSize st;
   if (start < 0) start += (int32_t)s->len; else start--;
